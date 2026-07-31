@@ -84,7 +84,7 @@ test('aggregate は倉庫×型式でサマる', () => {
   ], {
     cols: { warehouse: 'A', model: 'E', qty: 'I' },
     startRow: 2,
-    label: '実棚',
+    label: '預り書',
     labels: { warehouse: '倉庫名(A列)', model: '型式(E列)', qty: '台数(I列)' }
   });
 
@@ -105,7 +105,7 @@ test('aggregate はキーが空の行を集計対象外にして警告する', (
   ], {
     cols: { warehouse: 'A', model: 'E', qty: 'I' },
     startRow: 2,
-    label: '実棚',
+    label: '預り書',
     labels: { warehouse: '倉庫名(A列)', model: '型式(E列)', qty: '台数(I列)' }
   });
 
@@ -117,12 +117,12 @@ test('aggregate はキーが空の行を集計対象外にして警告する', (
 
 test('run はサマル・変換・判定を通しで行う', () => {
   const actual = [
-    // 一致（実棚側が2明細に分かれている＝サマル必須）
+    // 一致（預り書側が2明細に分かれている＝サマル必須）
     row({ A: '東京倉庫', E: 'AAA-100', I: 3 }),
     row({ A: '東京倉庫', E: 'AAA-100', I: 2 }),
     // 数量差異
     row({ A: '東京倉庫', E: 'BBB-200', I: 10 }),
-    // 実棚のみ
+    // 預り書のみ
     row({ A: '大阪倉庫', E: 'CCC-300', I: 4 }),
     // 変換表に無い倉庫（SAP 側も元名称のまま突合されて一致する）
     row({ A: 'ST99', E: 'DDD-400', I: 7 })
@@ -195,7 +195,8 @@ test('結果は差異が先頭に来るよう並ぶ', () => {
       rows: [
         row({ E: 'W1', G: 'M1', J: 1 }),
         row({ E: 'W2', G: 'M2', J: 9 }),
-        row({ E: 'W4', G: 'M4', J: 3 })
+        // W3 は預り書にある倉庫なので SAPのみ として残る
+        row({ E: 'W3', G: 'M4', J: 3 })
       ],
       startRow: 2
     },
@@ -205,6 +206,81 @@ test('結果は差異が先頭に来るよう並ぶ', () => {
   assert.deepEqual(out.results.map((r) => r.status), [
     R.STATUS.ACTUAL_ONLY, R.STATUS.SAP_ONLY, R.STATUS.DIFF, R.STATUS.MATCH
   ]);
+});
+
+test('預り書に無い倉庫は出力対象外にする', () => {
+  const out = R.run({
+    actual: {
+      rows: [
+        row({ A: '東京倉庫', E: 'AAA-100', I: 5 }),
+        row({ A: '大阪倉庫', E: 'BBB-200', I: 3 })
+      ],
+      startRow: 2
+    },
+    sap: {
+      rows: [
+        row({ E: 'ST01', G: 'AAA-100', J: 5 }),
+        // 大阪倉庫にある型式違い → 預り書にある倉庫なので SAPのみ として出す
+        row({ E: 'ST02', G: 'CCC-300', J: 2 }),
+        // 預り書に無い倉庫（取引先名）→ 出力しない
+        row({ E: '住友商事マシネックス株式会社', G: 'ZZZ-900', J: 30 }),
+        row({ E: '住友商事マシネックス株式会社', G: 'ZZZ-900', J: 6 }),
+        row({ E: '住友商事マシネックス株式会社', G: 'ZZZ-901', J: 12 })
+      ],
+      startRow: 2
+    },
+    mapping: {
+      rows: [row({ A: 'ST01', B: '東京倉庫' }), row({ A: 'ST02', B: '大阪倉庫' })],
+      startRow: 2
+    }
+  });
+
+  const warehouses = out.results.map((r) => r.warehouse);
+  assert.ok(!warehouses.includes('住友商事マシネックス株式会社'), '対象外の倉庫は結果に出ない');
+  assert.deepEqual(warehouses.sort(), ['大阪倉庫', '大阪倉庫', '東京倉庫']);
+  assert.equal(out.summary.sapOnly, 1, '対象外の行は SAPのみ に数えない');
+
+  // 対象外にしたものは件数と内訳を残して確認できるようにする
+  assert.equal(out.summary.excludedKeys, 2, 'ZZZ-900 と ZZZ-901 の2型式');
+  assert.equal(out.summary.excludedLines, 3, '明細は3行');
+  assert.equal(out.summary.excludedQty, 48);
+  assert.equal(out.excluded.length, 1);
+  assert.equal(out.excluded[0].warehouse, '住友商事マシネックス株式会社');
+  assert.equal(out.excluded[0].keys, 2);
+  assert.equal(out.excluded[0].lines, 3);
+
+  // 合計にも対象外の数量を含めない
+  assert.equal(out.summary.actualTotal, 8);
+  assert.equal(out.summary.sapTotal, 7, '5 + 2 のみ');
+});
+
+test('変換表で預り書に無い倉庫名に変換された場合も対象外にする', () => {
+  const out = R.run({
+    actual: { rows: [row({ A: '東京倉庫', E: 'AAA-100', I: 5 })], startRow: 2 },
+    sap: { rows: [row({ E: 'XX01', G: 'YYY-800', J: 4 })], startRow: 2 },
+    mapping: { rows: [row({ A: 'XX01', B: '住友商事マシネックス株式会社' })], startRow: 2 }
+  });
+
+  assert.equal(out.results.length, 1);
+  assert.equal(out.results[0].status, R.STATUS.ACTUAL_ONLY);
+  assert.equal(out.summary.excludedKeys, 1);
+  assert.equal(out.excluded[0].warehouse, '住友商事マシネックス株式会社');
+  assert.deepEqual(out.excluded[0].sourceNames, ['XX01'], '変換前の名前も残す');
+});
+
+test('型式が空でも倉庫名は預り書に存在するものとして扱う', () => {
+  const out = R.run({
+    // 型式が空の行は集計対象外だが、倉庫「大阪倉庫」は存在するとみなす
+    actual: {
+      rows: [row({ A: '東京倉庫', E: 'AAA-100', I: 5 }), row({ A: '大阪倉庫', E: '', I: 1 })],
+      startRow: 2
+    },
+    sap: { rows: [row({ E: '大阪倉庫', G: 'BBB-200', J: 2 })], startRow: 2 },
+    mapping: { rows: [], startRow: 2 }
+  });
+
+  assert.equal(out.summary.sapOnly, 1, '大阪倉庫は預り書にある倉庫として扱う');
+  assert.equal(out.summary.excludedKeys, 0);
 });
 
 test('小数の丸め誤差は一致と判定する', () => {

@@ -11,7 +11,7 @@
   /** ファイル種別ごとの定義。使用列は仕様どおり固定。 */
   var FILE_DEFS = {
     actual: {
-      label: '実棚 Excel',
+      label: '預り書 Excel',
       columns: [
         { col: 'A', name: '倉庫名' },
         { col: 'E', name: '型式' },
@@ -19,7 +19,7 @@
       ]
     },
     sap: {
-      label: 'SAP Excel',
+      label: 'SAP在庫残データ Excel',
       columns: [
         { col: 'E', name: '保管場所名' },
         { col: 'G', name: '品目テキスト' },
@@ -330,8 +330,8 @@
       setRunHint('3ファイルとも読み込み済みです。実行できます。', false);
     } else {
       var missing = [];
-      if (!state.actual) missing.push('①実棚');
-      if (!state.sap) missing.push('②SAP');
+      if (!state.actual) missing.push('①預り書');
+      if (!state.sap) missing.push('②SAP在庫残データ');
       if (!state.mapping) missing.push('③変換表');
       setRunHint(missing.join('・') + ' を読み込むと実行できます', true);
     }
@@ -466,7 +466,7 @@
     box.innerHTML = '';
     box.appendChild(statCard('ok', '一致', s.match, '件'));
     box.appendChild(statCard('diff', '数量差異', s.diff, '件'));
-    box.appendChild(statCard('actual-only', '実棚のみ（SAP未登録）', s.actualOnly, '件'));
+    box.appendChild(statCard('actual-only', R.STATUS.ACTUAL_ONLY + '（SAP未登録）', s.actualOnly, '件'));
     box.appendChild(statCard('sap-only', 'SAPのみ（現物なし）', s.sapOnly, '件'));
   }
 
@@ -484,12 +484,12 @@
     }
 
     entry('照合キー数（倉庫×型式）', fmtNum(s.keys));
-    entry('実棚 合計台数', fmtNum(s.actualTotal));
+    entry('預り書 合計台数', fmtNum(s.actualTotal));
     entry('SAP 合計数量', fmtNum(s.sapTotal));
     var deltaClass = Math.abs(s.actualTotal - s.sapTotal) <= R.EPSILON ? 'zero'
       : (s.actualTotal - s.sapTotal > 0 ? 'pos' : 'neg');
     entry('合計差異', fmtNum(s.actualTotal - s.sapTotal), deltaClass);
-    entry('取込明細数', fmtNum(st.actual.used) + ' / ' + fmtNum(st.sap.used) + '（実棚 / SAP）');
+    entry('取込明細数', fmtNum(st.actual.used) + ' / ' + fmtNum(st.sap.used) + '（預り書 / SAP）');
     entry('変換表', fmtNum(st.mappingCount) + '件');
   }
 
@@ -506,8 +506,24 @@
     }
 
     collect('変換表について', out.warnings.mapping);
-    collect('実棚 Excel について', out.warnings.actual);
-    collect('SAP Excel について', out.warnings.sap);
+    collect('預り書 Excel について', out.warnings.actual);
+    collect('SAP在庫残データ Excel について', out.warnings.sap);
+
+    if (out.excluded && out.excluded.length) {
+      var excludedItems = out.excluded.map(function (e) {
+        var source = e.sourceNames.filter(function (n) { return n !== e.warehouse; });
+        return '「' + e.warehouse + '」' +
+          (source.length ? '（変換前: ' + source.join(' / ') + '）' : '') +
+          ' … ' + e.keys + '型式 / ' + e.lines + '明細 / 数量 ' + R.formatQuantity(e.qty);
+      });
+      sections.push({
+        title: '預り書に無い倉庫のため出力対象外にしました（' +
+          out.summary.excludedKeys + '型式 / ' + out.summary.excludedLines + '明細）',
+        items: excludedItems.concat([
+          '倉庫名の書き間違いでここに出ている場合は、預り書または変換表を直してから再実行してください。'
+        ])
+      });
+    }
 
     if (out.stats.sap.unconverted > 0) {
       sections.push({
@@ -518,7 +534,7 @@
 
     if (out.nearMisses.length) {
       var items = out.nearMisses.map(function (m) {
-        return '実棚「' + m.actualWarehouse + ' / ' + m.actualModel + '」と SAP「' +
+        return '預り書「' + m.actualWarehouse + ' / ' + m.actualModel + '」と SAP「' +
           m.sapWarehouse + ' / ' + m.sapModel + '」は空白・全角半角だけが異なります。';
       });
       sections.push({

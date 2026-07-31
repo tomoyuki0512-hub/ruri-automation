@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>棚卸照合ツール｜実棚 × SAP</title>
+<title>棚卸照合ツール｜預り書 × SAP在庫残</title>
 <style>/* ============================================================
    棚卸照合ツール スタイル
    Windows 標準フォントで日本語が綺麗に出るよう調整。ライト / ダーク 両対応。
@@ -864,7 +864,7 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
       </span>
       <div>
         <h1>棚卸照合ツール</h1>
-        <p class="brand-sub">実棚 Excel と SAP Excel を 倉庫 × 型式 で突合します</p>
+        <p class="brand-sub">預り書 Excel と SAP在庫残データ Excel を 倉庫 × 型式 で突合します</p>
       </div>
     </div>
     <div class="topbar-actions">
@@ -897,12 +897,12 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
     </div>
 
     <div class="cards" id="cards">
-      <!-- ① 実棚 -->
+      <!-- ① 預り書 -->
       <article class="card" data-file="actual">
         <div class="card-head">
           <span class="card-no">①</span>
           <div class="card-title">
-            <h3>実棚 Excel</h3>
+            <h3>預り書 Excel</h3>
             <p>実際の在庫が管理されているファイル</p>
           </div>
         </div>
@@ -911,7 +911,7 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
           <li><b>E列</b><span>型式</span></li>
           <li><b>I列</b><span>台数</span></li>
         </ul>
-        <div class="drop" tabindex="0" role="button" aria-label="実棚 Excel を選択">
+        <div class="drop" tabindex="0" role="button" aria-label="預り書 Excel を選択">
           <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
           <div class="drop-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -944,8 +944,8 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
         <div class="card-head">
           <span class="card-no">②</span>
           <div class="card-title">
-            <h3>SAP Excel</h3>
-            <p>SAP から出力した在庫ファイル</p>
+            <h3>SAP在庫残データ Excel</h3>
+            <p>SAP から出力した在庫残のファイル</p>
           </div>
         </div>
         <ul class="cols">
@@ -953,7 +953,7 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
           <li><b>G列</b><span>品目テキスト</span></li>
           <li><b>J列</b><span>基本数量</span></li>
         </ul>
-        <div class="drop" tabindex="0" role="button" aria-label="SAP Excel を選択">
+        <div class="drop" tabindex="0" role="button" aria-label="SAP在庫残データ Excel を選択">
           <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
           <div class="drop-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -987,7 +987,7 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
           <span class="card-no">③</span>
           <div class="card-title">
             <h3>保管場所 変換表</h3>
-            <p>SAP の保管場所名を実棚の倉庫名に合わせる表</p>
+            <p>SAP の保管場所名を預り書の倉庫名に合わせる表</p>
           </div>
         </div>
         <ul class="cols">
@@ -1031,7 +1031,8 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
       <span class="step-no">2</span>
       <div>
         <h2>照合を実行する</h2>
-        <p class="step-desc">同じ 倉庫 × 型式 の明細を合計してから、実棚と SAP を突き合わせます。</p>
+        <p class="step-desc">同じ 倉庫 × 型式 の明細を合計してから、預り書と SAP を突き合わせます。<br>
+          出力対象は預り書の倉庫名に紐づくものだけです。</p>
       </div>
     </div>
     <div class="run-bar">
@@ -1106,10 +1107,10 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
             <th class="th-status" data-sort="status">判定</th>
             <th data-sort="warehouse">倉庫名</th>
             <th data-sort="model">型式</th>
-            <th class="num" data-sort="actualQty">実棚台数</th>
+            <th class="num" data-sort="actualQty">預り書台数</th>
             <th class="num" data-sort="sapQty">SAP基本数量</th>
-            <th class="num" data-sort="delta">差異<span class="th-sub">実棚 − SAP</span></th>
-            <th class="num" data-sort="actualLines">実棚<span class="th-sub">明細数</span></th>
+            <th class="num" data-sort="delta">差異<span class="th-sub">預り書 − SAP</span></th>
+            <th class="num" data-sort="actualLines">預り書<span class="th-sub">明細数</span></th>
             <th class="num" data-sort="sapLines">SAP<span class="th-sub">明細数</span></th>
             <th data-sort="sapSourceNames">SAP保管場所名<span class="th-sub">変換前</span></th>
           </tr>
@@ -1156,7 +1157,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 <script>/*
  * 棚卸照合ロジック（DOM 非依存）
  *
- * 実棚 Excel（倉庫名 / 型式 / 台数）と SAP Excel（保管場所名 / 品目テキスト / 基本数量）を
+ * 預り書 Excel（倉庫名 / 型式 / 台数）と SAP在庫残データ Excel（保管場所名 / 品目テキスト / 基本数量）を
  * 「倉庫名 × 型式」単位に集計して突合する。
  * ブラウザでは globalThis.Reconcile として、Node からは require で利用する。
  */
@@ -1165,7 +1166,7 @@ var Reconcile = (function () {
 
   /** 判定区分。結果の並び順もこの順序に従う（差異を上に出す） */
   var STATUS = {
-    ACTUAL_ONLY: '実棚のみ',
+    ACTUAL_ONLY: '預り書のみ',
     SAP_ONLY: 'SAPのみ',
     DIFF: '差異',
     MATCH: '一致'
@@ -1322,7 +1323,7 @@ var Reconcile = (function () {
    * @param {object} opts
    *   - cols: {warehouse, model, qty} 列文字
    *   - startRow: 元 Excel の行番号（1 始まり）
-   *   - label: 警告メッセージ用の名称（"実棚" / "SAP"）
+   *   - label: 警告メッセージ用の名称（"預り書" / "SAP"）
    *   - locationMap: 指定時は倉庫名に変換表を適用する
    */
   function aggregate(rows, opts) {
@@ -1333,6 +1334,7 @@ var Reconcile = (function () {
 
     var groups = new Map();
     var warnings = [];
+    var warehouses = new Set();
     var stats = { rows: 0, used: 0, skippedBlank: 0, badQty: 0, unconverted: 0, total: 0 };
 
     for (var i = 0; i < rows.length; i++) {
@@ -1348,6 +1350,11 @@ var Reconcile = (function () {
       if (isBlankRow) continue;
 
       stats.rows++;
+
+      // 型式が空で集計対象外になる行でも、倉庫名そのものは存在するものとして覚えておく
+      if (rawWarehouse !== '') {
+        warehouses.add(map ? convertLocation(rawWarehouse, map).name : rawWarehouse);
+      }
 
       if (rawWarehouse === '' || model === '') {
         stats.skippedBlank++;
@@ -1404,19 +1411,26 @@ var Reconcile = (function () {
       stats.total += parsed.value;
     }
 
-    return { groups: groups, warnings: warnings, stats: stats };
+    return { groups: groups, warnings: warnings, stats: stats, warehouses: warehouses };
   }
 
   /**
-   * 集計済みの実棚と SAP をフルアウタージョインして判定を付ける。
-   * @param {Map} actualGroups 実棚側の集計
+   * 集計済みの預り書と SAP をフルアウタージョインして判定を付ける。
+   *
+   * 出力対象は「預り書に存在する倉庫」に限定する。SAP 側にしか無い倉庫
+   * （自社倉庫ではない取引先名など）の在庫は棚卸の対象外なので結果に含めない。
+   *
+   * @param {Map} actualGroups 預り書側の集計
    * @param {Map} sapGroups SAP 側の集計
+   * @param {Set} allowedWarehouses 預り書に存在する倉庫名。省略時は絞り込まない。
    */
-  function compare(actualGroups, sapGroups) {
+  function compare(actualGroups, sapGroups, allowedWarehouses) {
     var results = [];
+    var excluded = new Map();
     var summary = {
       match: 0, diff: 0, actualOnly: 0, sapOnly: 0,
-      actualTotal: 0, sapTotal: 0, keys: 0
+      actualTotal: 0, sapTotal: 0, keys: 0,
+      excludedKeys: 0, excludedLines: 0, excludedQty: 0
     };
 
     actualGroups.forEach(function (a) {
@@ -1451,8 +1465,31 @@ var Reconcile = (function () {
     });
 
     sapGroups.forEach(function (s) {
+      if (actualGroups.has(s.key)) {
+        summary.sapTotal += s.qty;
+        return;
+      }
+
+      // 預り書に無い倉庫は棚卸の対象外。件数だけ数えて結果には含めない。
+      if (allowedWarehouses && !allowedWarehouses.has(s.warehouse)) {
+        summary.excludedKeys++;
+        summary.excludedLines += s.lines;
+        summary.excludedQty += s.qty;
+        var ex = excluded.get(s.warehouse);
+        if (!ex) {
+          ex = { warehouse: s.warehouse, keys: 0, lines: 0, qty: 0, sourceNames: [] };
+          excluded.set(s.warehouse, ex);
+        }
+        ex.keys++;
+        ex.lines += s.lines;
+        ex.qty += s.qty;
+        s.sourceNames.forEach(function (name) {
+          if (ex.sourceNames.indexOf(name) === -1) ex.sourceNames.push(name);
+        });
+        return;
+      }
+
       summary.sapTotal += s.qty;
-      if (actualGroups.has(s.key)) return;
       summary.sapOnly++;
       results.push({
         status: STATUS.SAP_ONLY,
@@ -1471,7 +1508,11 @@ var Reconcile = (function () {
 
     summary.keys = results.length;
     sortResults(results);
-    return { results: results, summary: summary };
+
+    var excludedList = Array.from(excluded.values());
+    excludedList.sort(function (x, y) { return y.lines - x.lines; });
+
+    return { results: results, summary: summary, excluded: excludedList };
   }
 
   /** 差異を上に、その中は倉庫名→型式の昇順で並べる */
@@ -1545,7 +1586,7 @@ var Reconcile = (function () {
     var actual = aggregate(input.actual.rows, {
       cols: { warehouse: 'A', model: 'E', qty: 'I' },
       startRow: input.actual.startRow,
-      label: '実棚',
+      label: '預り書',
       labels: { warehouse: '倉庫名(A列)', model: '型式(E列)', qty: '台数(I列)' }
     });
 
@@ -1557,12 +1598,15 @@ var Reconcile = (function () {
       locationMap: mapping.map
     });
 
-    var compared = compare(actual.groups, sap.groups);
+    // 出力は預り書に存在する倉庫のものだけに絞る
+    var compared = compare(actual.groups, sap.groups, actual.warehouses);
+    // 表記ゆれの調査には対象外にした倉庫も含めて見たいので、絞り込み前で突き合わせる
     var nearMisses = findNearMisses(actual.groups, sap.groups);
 
     return {
       results: compared.results,
       summary: compared.summary,
+      excluded: compared.excluded,
       stats: { actual: actual.stats, sap: sap.stats, mappingCount: mapping.count },
       warnings: {
         mapping: mapping.warnings,
@@ -1581,8 +1625,8 @@ var Reconcile = (function () {
   }
 
   var CSV_HEADER = [
-    '判定', '倉庫名', '型式', '実棚台数', 'SAP基本数量', '差異(実棚-SAP)',
-    '実棚明細件数', 'SAP明細件数', 'SAP保管場所名(変換前)'
+    '判定', '倉庫名', '型式', '預り書台数', 'SAP基本数量', '差異(預り書-SAP)',
+    '預り書明細件数', 'SAP明細件数', 'SAP保管場所名(変換前)'
   ];
 
   /**
@@ -1647,7 +1691,7 @@ if (typeof module !== 'undefined' && module.exports) {
   /** ファイル種別ごとの定義。使用列は仕様どおり固定。 */
   var FILE_DEFS = {
     actual: {
-      label: '実棚 Excel',
+      label: '預り書 Excel',
       columns: [
         { col: 'A', name: '倉庫名' },
         { col: 'E', name: '型式' },
@@ -1655,7 +1699,7 @@ if (typeof module !== 'undefined' && module.exports) {
       ]
     },
     sap: {
-      label: 'SAP Excel',
+      label: 'SAP在庫残データ Excel',
       columns: [
         { col: 'E', name: '保管場所名' },
         { col: 'G', name: '品目テキスト' },
@@ -1966,8 +2010,8 @@ if (typeof module !== 'undefined' && module.exports) {
       setRunHint('3ファイルとも読み込み済みです。実行できます。', false);
     } else {
       var missing = [];
-      if (!state.actual) missing.push('①実棚');
-      if (!state.sap) missing.push('②SAP');
+      if (!state.actual) missing.push('①預り書');
+      if (!state.sap) missing.push('②SAP在庫残データ');
       if (!state.mapping) missing.push('③変換表');
       setRunHint(missing.join('・') + ' を読み込むと実行できます', true);
     }
@@ -2102,7 +2146,7 @@ if (typeof module !== 'undefined' && module.exports) {
     box.innerHTML = '';
     box.appendChild(statCard('ok', '一致', s.match, '件'));
     box.appendChild(statCard('diff', '数量差異', s.diff, '件'));
-    box.appendChild(statCard('actual-only', '実棚のみ（SAP未登録）', s.actualOnly, '件'));
+    box.appendChild(statCard('actual-only', R.STATUS.ACTUAL_ONLY + '（SAP未登録）', s.actualOnly, '件'));
     box.appendChild(statCard('sap-only', 'SAPのみ（現物なし）', s.sapOnly, '件'));
   }
 
@@ -2120,12 +2164,12 @@ if (typeof module !== 'undefined' && module.exports) {
     }
 
     entry('照合キー数（倉庫×型式）', fmtNum(s.keys));
-    entry('実棚 合計台数', fmtNum(s.actualTotal));
+    entry('預り書 合計台数', fmtNum(s.actualTotal));
     entry('SAP 合計数量', fmtNum(s.sapTotal));
     var deltaClass = Math.abs(s.actualTotal - s.sapTotal) <= R.EPSILON ? 'zero'
       : (s.actualTotal - s.sapTotal > 0 ? 'pos' : 'neg');
     entry('合計差異', fmtNum(s.actualTotal - s.sapTotal), deltaClass);
-    entry('取込明細数', fmtNum(st.actual.used) + ' / ' + fmtNum(st.sap.used) + '（実棚 / SAP）');
+    entry('取込明細数', fmtNum(st.actual.used) + ' / ' + fmtNum(st.sap.used) + '（預り書 / SAP）');
     entry('変換表', fmtNum(st.mappingCount) + '件');
   }
 
@@ -2142,8 +2186,24 @@ if (typeof module !== 'undefined' && module.exports) {
     }
 
     collect('変換表について', out.warnings.mapping);
-    collect('実棚 Excel について', out.warnings.actual);
-    collect('SAP Excel について', out.warnings.sap);
+    collect('預り書 Excel について', out.warnings.actual);
+    collect('SAP在庫残データ Excel について', out.warnings.sap);
+
+    if (out.excluded && out.excluded.length) {
+      var excludedItems = out.excluded.map(function (e) {
+        var source = e.sourceNames.filter(function (n) { return n !== e.warehouse; });
+        return '「' + e.warehouse + '」' +
+          (source.length ? '（変換前: ' + source.join(' / ') + '）' : '') +
+          ' … ' + e.keys + '型式 / ' + e.lines + '明細 / 数量 ' + R.formatQuantity(e.qty);
+      });
+      sections.push({
+        title: '預り書に無い倉庫のため出力対象外にしました（' +
+          out.summary.excludedKeys + '型式 / ' + out.summary.excludedLines + '明細）',
+        items: excludedItems.concat([
+          '倉庫名の書き間違いでここに出ている場合は、預り書または変換表を直してから再実行してください。'
+        ])
+      });
+    }
 
     if (out.stats.sap.unconverted > 0) {
       sections.push({
@@ -2154,7 +2214,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
     if (out.nearMisses.length) {
       var items = out.nearMisses.map(function (m) {
-        return '実棚「' + m.actualWarehouse + ' / ' + m.actualModel + '」と SAP「' +
+        return '預り書「' + m.actualWarehouse + ' / ' + m.actualModel + '」と SAP「' +
           m.sapWarehouse + ' / ' + m.sapModel + '」は空白・全角半角だけが異なります。';
       });
       sections.push({

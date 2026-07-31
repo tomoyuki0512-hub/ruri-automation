@@ -1,7 +1,7 @@
 /*
  * 棚卸照合ロジック（DOM 非依存）
  *
- * 実棚 Excel（倉庫名 / 型式 / 台数）と SAP Excel（保管場所名 / 品目テキスト / 基本数量）を
+ * 預り書 Excel（倉庫名 / 型式 / 台数）と SAP在庫残データ Excel（保管場所名 / 品目テキスト / 基本数量）を
  * 「倉庫名 × 型式」単位に集計して突合する。
  * ブラウザでは globalThis.Reconcile として、Node からは require で利用する。
  */
@@ -10,7 +10,7 @@ var Reconcile = (function () {
 
   /** 判定区分。結果の並び順もこの順序に従う（差異を上に出す） */
   var STATUS = {
-    ACTUAL_ONLY: '実棚のみ',
+    ACTUAL_ONLY: '預り書のみ',
     SAP_ONLY: 'SAPのみ',
     DIFF: '差異',
     MATCH: '一致'
@@ -167,7 +167,7 @@ var Reconcile = (function () {
    * @param {object} opts
    *   - cols: {warehouse, model, qty} 列文字
    *   - startRow: 元 Excel の行番号（1 始まり）
-   *   - label: 警告メッセージ用の名称（"実棚" / "SAP"）
+   *   - label: 警告メッセージ用の名称（"預り書" / "SAP"）
    *   - locationMap: 指定時は倉庫名に変換表を適用する
    */
   function aggregate(rows, opts) {
@@ -178,6 +178,7 @@ var Reconcile = (function () {
 
     var groups = new Map();
     var warnings = [];
+    var warehouses = new Set();
     var stats = { rows: 0, used: 0, skippedBlank: 0, badQty: 0, unconverted: 0, total: 0 };
 
     for (var i = 0; i < rows.length; i++) {
@@ -193,6 +194,11 @@ var Reconcile = (function () {
       if (isBlankRow) continue;
 
       stats.rows++;
+
+      // 型式が空で集計対象外になる行でも、倉庫名そのものは存在するものとして覚えておく
+      if (rawWarehouse !== '') {
+        warehouses.add(map ? convertLocation(rawWarehouse, map).name : rawWarehouse);
+      }
 
       if (rawWarehouse === '' || model === '') {
         stats.skippedBlank++;
@@ -249,19 +255,26 @@ var Reconcile = (function () {
       stats.total += parsed.value;
     }
 
-    return { groups: groups, warnings: warnings, stats: stats };
+    return { groups: groups, warnings: warnings, stats: stats, warehouses: warehouses };
   }
 
   /**
-   * 集計済みの実棚と SAP をフルアウタージョインして判定を付ける。
-   * @param {Map} actualGroups 実棚側の集計
+   * 集計済みの預り書と SAP をフルアウタージョインして判定を付ける。
+   *
+   * 出力対象は「預り書に存在する倉庫」に限定する。SAP 側にしか無い倉庫
+   * （自社倉庫ではない取引先名など）の在庫は棚卸の対象外なので結果に含めない。
+   *
+   * @param {Map} actualGroups 預り書側の集計
    * @param {Map} sapGroups SAP 側の集計
+   * @param {Set} allowedWarehouses 預り書に存在する倉庫名。省略時は絞り込まない。
    */
-  function compare(actualGroups, sapGroups) {
+  function compare(actualGroups, sapGroups, allowedWarehouses) {
     var results = [];
+    var excluded = new Map();
     var summary = {
       match: 0, diff: 0, actualOnly: 0, sapOnly: 0,
-      actualTotal: 0, sapTotal: 0, keys: 0
+      actualTotal: 0, sapTotal: 0, keys: 0,
+      excludedKeys: 0, excludedLines: 0, excludedQty: 0
     };
 
     actualGroups.forEach(function (a) {
@@ -296,8 +309,31 @@ var Reconcile = (function () {
     });
 
     sapGroups.forEach(function (s) {
+      if (actualGroups.has(s.key)) {
+        summary.sapTotal += s.qty;
+        return;
+      }
+
+      // 預り書に無い倉庫は棚卸の対象外。件数だけ数えて結果には含めない。
+      if (allowedWarehouses && !allowedWarehouses.has(s.warehouse)) {
+        summary.excludedKeys++;
+        summary.excludedLines += s.lines;
+        summary.excludedQty += s.qty;
+        var ex = excluded.get(s.warehouse);
+        if (!ex) {
+          ex = { warehouse: s.warehouse, keys: 0, lines: 0, qty: 0, sourceNames: [] };
+          excluded.set(s.warehouse, ex);
+        }
+        ex.keys++;
+        ex.lines += s.lines;
+        ex.qty += s.qty;
+        s.sourceNames.forEach(function (name) {
+          if (ex.sourceNames.indexOf(name) === -1) ex.sourceNames.push(name);
+        });
+        return;
+      }
+
       summary.sapTotal += s.qty;
-      if (actualGroups.has(s.key)) return;
       summary.sapOnly++;
       results.push({
         status: STATUS.SAP_ONLY,
@@ -316,7 +352,11 @@ var Reconcile = (function () {
 
     summary.keys = results.length;
     sortResults(results);
-    return { results: results, summary: summary };
+
+    var excludedList = Array.from(excluded.values());
+    excludedList.sort(function (x, y) { return y.lines - x.lines; });
+
+    return { results: results, summary: summary, excluded: excludedList };
   }
 
   /** 差異を上に、その中は倉庫名→型式の昇順で並べる */
@@ -390,7 +430,7 @@ var Reconcile = (function () {
     var actual = aggregate(input.actual.rows, {
       cols: { warehouse: 'A', model: 'E', qty: 'I' },
       startRow: input.actual.startRow,
-      label: '実棚',
+      label: '預り書',
       labels: { warehouse: '倉庫名(A列)', model: '型式(E列)', qty: '台数(I列)' }
     });
 
@@ -402,12 +442,15 @@ var Reconcile = (function () {
       locationMap: mapping.map
     });
 
-    var compared = compare(actual.groups, sap.groups);
+    // 出力は預り書に存在する倉庫のものだけに絞る
+    var compared = compare(actual.groups, sap.groups, actual.warehouses);
+    // 表記ゆれの調査には対象外にした倉庫も含めて見たいので、絞り込み前で突き合わせる
     var nearMisses = findNearMisses(actual.groups, sap.groups);
 
     return {
       results: compared.results,
       summary: compared.summary,
+      excluded: compared.excluded,
       stats: { actual: actual.stats, sap: sap.stats, mappingCount: mapping.count },
       warnings: {
         mapping: mapping.warnings,
@@ -426,8 +469,8 @@ var Reconcile = (function () {
   }
 
   var CSV_HEADER = [
-    '判定', '倉庫名', '型式', '実棚台数', 'SAP基本数量', '差異(実棚-SAP)',
-    '実棚明細件数', 'SAP明細件数', 'SAP保管場所名(変換前)'
+    '判定', '倉庫名', '型式', '預り書台数', 'SAP基本数量', '差異(預り書-SAP)',
+    '預り書明細件数', 'SAP明細件数', 'SAP保管場所名(変換前)'
   ];
 
   /**

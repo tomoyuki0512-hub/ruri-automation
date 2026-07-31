@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>棚卸照合ツール｜実棚 × SAP</title>
+<title>棚卸照合ツール｜預り書 × SAP在庫残</title>
 <style>/*__STYLE__*/</style>
 </head>
 <body>
@@ -18,7 +18,7 @@
       </span>
       <div>
         <h1>棚卸照合ツール</h1>
-        <p class="brand-sub">実棚 Excel と SAP Excel を 倉庫 × 型式 で突合します</p>
+        <p class="brand-sub">預り書 Excel と SAP在庫残データ Excel を 倉庫 × 型式 で突合します</p>
       </div>
     </div>
     <div class="topbar-actions">
@@ -51,12 +51,12 @@
     </div>
 
     <div class="cards" id="cards">
-      <!-- ① 実棚 -->
+      <!-- ① 預り書 -->
       <article class="card" data-file="actual">
         <div class="card-head">
           <span class="card-no">①</span>
           <div class="card-title">
-            <h3>実棚 Excel</h3>
+            <h3>預り書 Excel</h3>
             <p>実際の在庫が管理されているファイル</p>
           </div>
         </div>
@@ -65,7 +65,7 @@
           <li><b>E列</b><span>型式</span></li>
           <li><b>I列</b><span>台数</span></li>
         </ul>
-        <div class="drop" tabindex="0" role="button" aria-label="実棚 Excel を選択">
+        <div class="drop" tabindex="0" role="button" aria-label="預り書 Excel を選択">
           <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
           <div class="drop-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -98,8 +98,8 @@
         <div class="card-head">
           <span class="card-no">②</span>
           <div class="card-title">
-            <h3>SAP Excel</h3>
-            <p>SAP から出力した在庫ファイル</p>
+            <h3>SAP在庫残データ Excel</h3>
+            <p>SAP から出力した在庫残のファイル</p>
           </div>
         </div>
         <ul class="cols">
@@ -107,7 +107,7 @@
           <li><b>G列</b><span>品目テキスト</span></li>
           <li><b>J列</b><span>基本数量</span></li>
         </ul>
-        <div class="drop" tabindex="0" role="button" aria-label="SAP Excel を選択">
+        <div class="drop" tabindex="0" role="button" aria-label="SAP在庫残データ Excel を選択">
           <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
           <div class="drop-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -141,7 +141,7 @@
           <span class="card-no">③</span>
           <div class="card-title">
             <h3>保管場所 変換表</h3>
-            <p>SAP の保管場所名を実棚の倉庫名に合わせる表</p>
+            <p>SAP の保管場所名を預り書の倉庫名に合わせる表</p>
           </div>
         </div>
         <ul class="cols">
@@ -185,7 +185,8 @@
       <span class="step-no">2</span>
       <div>
         <h2>照合を実行する</h2>
-        <p class="step-desc">同じ 倉庫 × 型式 の明細を合計してから、実棚と SAP を突き合わせます。</p>
+        <p class="step-desc">同じ 倉庫 × 型式 の明細を合計してから、預り書と SAP を突き合わせます。<br>
+          出力対象は預り書の倉庫名に紐づくものだけです。</p>
       </div>
     </div>
     <div class="run-bar">
@@ -260,10 +261,10 @@
             <th class="th-status" data-sort="status">判定</th>
             <th data-sort="warehouse">倉庫名</th>
             <th data-sort="model">型式</th>
-            <th class="num" data-sort="actualQty">実棚台数</th>
+            <th class="num" data-sort="actualQty">預り書台数</th>
             <th class="num" data-sort="sapQty">SAP基本数量</th>
-            <th class="num" data-sort="delta">差異<span class="th-sub">実棚 − SAP</span></th>
-            <th class="num" data-sort="actualLines">実棚<span class="th-sub">明細数</span></th>
+            <th class="num" data-sort="delta">差異<span class="th-sub">預り書 − SAP</span></th>
+            <th class="num" data-sort="actualLines">預り書<span class="th-sub">明細数</span></th>
             <th class="num" data-sort="sapLines">SAP<span class="th-sub">明細数</span></th>
             <th data-sort="sapSourceNames">SAP保管場所名<span class="th-sub">変換前</span></th>
           </tr>

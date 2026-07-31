@@ -20,7 +20,7 @@ const samples = process.env.SAMPLE_DIR || join(root, 'samples');
 
 for (const p of [
   appPath,
-  join(samples, 'sample_実棚.xlsx'),
+  join(samples, 'sample_預り書.xlsx'),
   join(samples, 'sample_SAP.xlsx'),
   join(samples, 'sample_変換表.xlsx')
 ]) {
@@ -32,7 +32,7 @@ for (const p of [
 const uploadDir = mkdtempSync(join(tmpdir(), 'tanaoroshi-in-'));
 const upload = {};
 for (const [key, name] of [
-  ['actual', 'sample_実棚.xlsx'],
+  ['actual', 'sample_預り書.xlsx'],
   ['sap', 'sample_SAP.xlsx'],
   ['mapping', 'sample_変換表.xlsx']
 ]) {
@@ -76,7 +76,7 @@ const firstPreviewRow = await page.$$eval(
   '.card[data-file="actual"] .preview tbody tr:first-child td',
   (tds) => tds.map((td) => td.textContent)
 );
-check('実棚プレビューが A/E/I 列を表示する', () => {
+check('預り書プレビューが A/E/I 列を表示する', () => {
   assert.deepEqual(firstPreviewRow, ['2', '東京第一倉庫', 'AAA-100', '3']);
 });
 
@@ -84,7 +84,7 @@ const sapPreviewRow = await page.$$eval(
   '.card[data-file="sap"] .preview tbody tr:first-child td',
   (tds) => tds.map((td) => td.textContent)
 );
-check('SAPプレビューが E/G/J 列を表示する', () => {
+check('SAP在庫残データのプレビューが E/G/J 列を表示する', () => {
   assert.deepEqual(sapPreviewRow, ['2', 'ST01', 'AAA-100', '5']);
 });
 
@@ -107,10 +107,31 @@ check('判定件数が期待どおり', () => {
   );
 });
 check('照合キー数が 9', () => assert.equal(summary.keys, 9));
-check('実棚合計が 1245.5（"1,200" 文字列も加算）', () => assert.equal(summary.actualTotal, 1245.5));
+check('預り書合計が 1245.5（"1,200" 文字列も加算）', () => assert.equal(summary.actualTotal, 1245.5));
 check('SAP合計が 1248.5', () => assert.equal(summary.sapTotal, 1248.5));
-check('変換表に無い保管場所を 2 明細検出', () => assert.equal(stats.sap.unconverted, 2));
-check('変換表を 4 件読み込む', () => assert.equal(stats.mappingCount, 4));
+check('変換表に無い保管場所を 4 明細検出', () =>
+  assert.equal(stats.sap.unconverted, 4, 'ST99 の2明細 + 住友商事マシネックス株式会社 の2明細'));
+check('変換表を 5 件読み込む', () => assert.equal(stats.mappingCount, 5));
+
+// --- 預り書に無い倉庫の除外 ---------------------------------------------
+const excluded = await page.evaluate(() => window.__tanaoroshi.state.output.excluded);
+const allWarehouses = await page.$$eval('#resultBody tr', (trs) =>
+  trs.map((t) => t.children[1].textContent.trim()));
+
+check('預り書に無い倉庫は結果に出さない', () => {
+  assert.ok(!allWarehouses.includes('住友商事マシネックス株式会社'),
+    '実際に表示された倉庫: ' + JSON.stringify([...new Set(allWarehouses)]));
+});
+check('除外した倉庫を件数つきで保持する', () => {
+  assert.equal(summary.excludedKeys, 3, 'ZZZ-900 / ZZZ-901 / YYY-800');
+  assert.equal(summary.excludedLines, 3);
+  assert.equal(excluded.length, 1, '変換表経由の XX01 も同じ倉庫名にまとまる');
+  assert.equal(excluded[0].warehouse, '住友商事マシネックス株式会社');
+  assert.equal(excluded[0].keys, 3);
+  assert.equal(excluded[0].qty, 46, '30 + 12 + 4');
+  assert.ok(excluded[0].sourceNames.includes('XX01'), '変換前の名前も残す');
+});
+check('除外した数量は SAP 合計に含めない', () => assert.equal(summary.sapTotal, 1248.5));
 
 // 画面表示の検証
 const summaryValues = await page.$$eval('#summary .stat-value', (els) => els.map((e) => e.textContent.trim()));
@@ -119,8 +140,8 @@ check('サマリーカードの表示が件数と一致', () => {
 });
 
 const firstRow = await page.$$eval('#resultBody tr:first-child td', (tds) => tds.map((t) => t.textContent.trim()));
-check('先頭行は差異（実棚のみ）が来る', () => {
-  assert.equal(firstRow[0], '実棚のみ');
+check('先頭行は差異（預り書のみ）が来る', () => {
+  assert.equal(firstRow[0], '預り書のみ');
   assert.equal(firstRow[1], '東京第一倉庫');
   assert.equal(firstRow[2], 'CCC-300');
   assert.equal(firstRow[3], '4');
@@ -131,7 +152,7 @@ const diffRow = await page.$$eval('#resultBody tr', (trs) => {
   const tr = trs.find((t) => t.children[2].textContent.trim() === 'BBB-200');
   return Array.from(tr.children).map((td) => td.textContent.trim());
 });
-check('数量差異の行が実棚10/SAP8/差異+2', () => {
+check('数量差異の行が預り書10/SAP8/差異+2', () => {
   assert.equal(diffRow[0], '差異');
   assert.equal(diffRow[3], '10');
   assert.equal(diffRow[4], '8');
@@ -178,6 +199,11 @@ await page.click('#warnToggle');
 const warnText = await page.textContent('#warnBody');
 check('変換表に無い保管場所を警告に出す', () => {
   assert.match(warnText, /変換表に該当が無かった/);
+});
+check('出力対象外にした倉庫を確認事項に出す', () => {
+  assert.match(warnText, /預り書に無い倉庫のため出力対象外/);
+  assert.match(warnText, /住友商事マシネックス株式会社/);
+  assert.match(warnText, /変換前: XX01/);
 });
 const warnShot = join(here, 'screenshot-3-warnings.png');
 await page.screenshot({ path: warnShot, fullPage: true });
@@ -257,16 +283,16 @@ check('CSV が CRLF 改行', () => assert.ok(allCsv.includes('\r\n')));
 
 const allLines = allCsv.replace(/^﻿/, '').trim().split('\r\n');
 check('CSV ヘッダが仕様どおり', () => {
-  assert.equal(allLines[0], '判定,倉庫名,型式,実棚台数,SAP基本数量,差異(実棚-SAP),実棚明細件数,SAP明細件数,SAP保管場所名(変換前)');
+  assert.equal(allLines[0], '判定,倉庫名,型式,預り書台数,SAP基本数量,差異(預り書-SAP),預り書明細件数,SAP明細件数,SAP保管場所名(変換前)');
 });
 check('CSV は 9 件 + ヘッダ', () => assert.equal(allLines.length, 10));
 check('CSV に差異行が正しく入る', () => {
   assert.ok(allLines.some((l) => l === '差異,東京第一倉庫,BBB-200,10,8,2,1,1,ST01'), allLines.join('\n'));
 });
-check('CSV に実棚のみ行（SAP側空欄）が入る', () => {
-  assert.ok(allLines.some((l) => l === '実棚のみ,東京第一倉庫,CCC-300,4,,4,1,0,'), allLines.join('\n'));
+check('CSV に預り書のみ行（SAP側空欄）が入る', () => {
+  assert.ok(allLines.some((l) => l === '預り書のみ,東京第一倉庫,CCC-300,4,,4,1,0,'), allLines.join('\n'));
 });
-check('CSV に SAPのみ行（実棚側空欄）が入る', () => {
+check('CSV に SAPのみ行（預り書側空欄）が入る', () => {
   assert.ok(allLines.some((l) => l === 'SAPのみ,大阪倉庫,HHH-800,,9,-9,0,1,ST02'), allLines.join('\n'));
 });
 check('CSV でサマった明細件数が出る', () => {
