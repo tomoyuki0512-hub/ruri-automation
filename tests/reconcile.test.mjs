@@ -69,7 +69,7 @@ test('buildLocationMap は後勝ちで辞書化し重複を警告する', () => 
   assert.match(built.warnings[0], /4行目/);
 });
 
-test('convertLocation は変換表に無ければ元の名前を使う', () => {
+test('convertLocation はマッピング表に無ければ元の名前を使う', () => {
   const map = { ST01: '東京倉庫' };
   assert.deepEqual(R.convertLocation('ST01', map), { name: '東京倉庫', converted: true });
   assert.deepEqual(R.convertLocation('ST99', map), { name: 'ST99', converted: false });
@@ -124,7 +124,7 @@ test('run はサマル・変換・判定を通しで行う', () => {
     row({ A: '東京倉庫', E: 'BBB-200', I: 10 }),
     // 預り書のみ
     row({ A: '大阪倉庫', E: 'CCC-300', I: 4 }),
-    // 変換表に無い倉庫（SAP 側も元名称のまま突合されて一致する）
+    // マッピング表に無い倉庫（SAP 側も元名称のまま突合されて一致する）
     row({ A: 'ST99', E: 'DDD-400', I: 7 })
   ];
   const sap = [
@@ -169,7 +169,7 @@ test('run はサマル・変換・判定を通しで行う', () => {
   assert.equal(eee.delta, -6);
 
   const ddd = byKey.get('ST99|DDD-400');
-  assert.equal(ddd.status, R.STATUS.MATCH, '変換表に無い保管場所は元の名前で突合される');
+  assert.equal(ddd.status, R.STATUS.MATCH, 'マッピング表に無い保管場所は元の名前で突合される');
   assert.equal(ddd.sapQty, 7);
 
   assert.deepEqual(
@@ -178,7 +178,7 @@ test('run はサマル・変換・判定を通しで行う', () => {
   );
   assert.equal(out.summary.actualTotal, 26);
   assert.equal(out.summary.sapTotal, 26);
-  assert.equal(out.stats.sap.unconverted, 2, 'ST99 の2明細は変換表に無い');
+  assert.equal(out.stats.sap.unconverted, 2, 'ST99 の2明細はマッピング表に無い');
 });
 
 test('結果は差異が先頭に来るよう並ぶ', () => {
@@ -254,7 +254,7 @@ test('預り書に無い倉庫は出力対象外にする', () => {
   assert.equal(out.summary.sapTotal, 7, '5 + 2 のみ');
 });
 
-test('変換表で預り書に無い倉庫名に変換された場合も対象外にする', () => {
+test('マッピング表で預り書に無い倉庫名に変換された場合も対象外にする', () => {
   const out = R.run({
     actual: { rows: [row({ A: '東京倉庫', E: 'AAA-100', I: 5 })], startRow: 2 },
     sap: { rows: [row({ E: 'XX01', G: 'YYY-800', J: 4 })], startRow: 2 },

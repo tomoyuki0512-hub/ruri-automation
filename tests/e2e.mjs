@@ -22,7 +22,7 @@ for (const p of [
   appPath,
   join(samples, 'sample_預り書.xlsx'),
   join(samples, 'sample_SAP.xlsx'),
-  join(samples, 'sample_変換表.xlsx')
+  join(samples, 'sample_マッピング表.xlsx')
 ]) {
   if (!existsSync(p)) throw new Error(`必要なファイルがありません: ${p}\n先に tools/build.py と tools/make_samples.py を実行してください。`);
 }
@@ -34,7 +34,7 @@ const upload = {};
 for (const [key, name] of [
   ['actual', 'sample_預り書.xlsx'],
   ['sap', 'sample_SAP.xlsx'],
-  ['mapping', 'sample_変換表.xlsx']
+  ['mapping', 'sample_マッピング表.xlsx']
 ]) {
   upload[key] = join(uploadDir, `${key}.xlsx`);
   copyFileSync(join(samples, name), upload[key]);
@@ -109,9 +109,9 @@ check('判定件数が期待どおり', () => {
 check('照合キー数が 9', () => assert.equal(summary.keys, 9));
 check('預り書合計が 1245.5（"1,200" 文字列も加算）', () => assert.equal(summary.actualTotal, 1245.5));
 check('SAP合計が 1248.5', () => assert.equal(summary.sapTotal, 1248.5));
-check('変換表に無い保管場所を 4 明細検出', () =>
+check('マッピング表に無い保管場所を 4 明細検出', () =>
   assert.equal(stats.sap.unconverted, 4, 'ST99 の2明細 + 住友商事マシネックス株式会社 の2明細'));
-check('変換表を 5 件読み込む', () => assert.equal(stats.mappingCount, 5));
+check('マッピング表を 5 件読み込む', () => assert.equal(stats.mappingCount, 5));
 
 // --- 預り書に無い倉庫の除外 ---------------------------------------------
 const excluded = await page.evaluate(() => window.__tanaoroshi.state.output.excluded);
@@ -174,7 +174,7 @@ const unconvertedRow = await page.$$eval('#resultBody tr', (trs) => {
   const tr = trs.find((t) => t.children[2].textContent.trim() === 'FFF-600');
   return Array.from(tr.children).map((td) => td.textContent.trim());
 });
-check('変換表に無い ST99 は元名称のまま突合して一致', () => {
+check('マッピング表に無い ST99 は元名称のまま突合して一致', () => {
   assert.equal(unconvertedRow[0], '一致');
   assert.equal(unconvertedRow[1], 'ST99');
   assert.equal(unconvertedRow[3], '7');
@@ -197,8 +197,8 @@ await page.screenshot({ path: resultShot, fullPage: true });
 // 警告パネル
 await page.click('#warnToggle');
 const warnText = await page.textContent('#warnBody');
-check('変換表に無い保管場所を警告に出す', () => {
-  assert.match(warnText, /変換表に該当が無かった/);
+check('マッピング表に無い保管場所を警告に出す', () => {
+  assert.match(warnText, /マッピング表に該当が無かった/);
 });
 check('出力対象外にした倉庫を確認事項に出す', () => {
   assert.match(warnText, /預り書に無い倉庫のため出力対象外/);
@@ -353,6 +353,44 @@ check('設定を戻して再実行すると元の結果に戻る', () => {
     { match: 6, diff: 1, actualOnly: 1, sapOnly: 1 }
   );
 });
+
+// --- 同梱の実マッピング表が読めるか -------------------------------------
+// リポジトリ同梱の「マッピング表(倉庫名⇔保管場所名).xlsx」は実データなので、
+// 既定設定（先頭シート・2行目開始）でそのまま読めることを確認する。
+const realMapping = join(root, 'マッピング表(倉庫名⇔保管場所名).xlsx');
+if (existsSync(realMapping)) {
+  const realCopy = join(uploadDir, 'real-mapping.xlsx');
+  copyFileSync(realMapping, realCopy);
+
+  await page.click('.card[data-file="mapping"] .clear-btn');
+  await page.setInputFiles('.card[data-file="mapping"] input[type=file]', realCopy);
+  await page.waitForSelector('.card[data-file="mapping"] .preview table');
+
+  const realRow = await page.$$eval(
+    '.card[data-file="mapping"] .preview tbody tr:first-child td',
+    (tds) => tds.map((td) => td.textContent)
+  );
+  const realErrors = await page.$$eval('.card[data-file="mapping"] .card-error', (e) => e.map((x) => x.textContent));
+
+  check('同梱のマッピング表を既定設定で読み込める', () => {
+    assert.deepEqual(realErrors, []);
+    assert.deepEqual(realRow, [
+      '2', '株式会社ＰＦＵ　名古屋ロジスティックセンター', '名古屋ロジスティック倉庫'
+    ]);
+  });
+
+  await page.click('#runBtn');
+  await page.waitForSelector('#resultSection:not([hidden])');
+  const realCount = await page.evaluate(() => window.__tanaoroshi.state.output.stats.mappingCount);
+  check('同梱のマッピング表から 23 件読み込む', () => assert.equal(realCount, 23));
+
+  // サンプルに戻して以降の検証に影響させない
+  await page.click('.card[data-file="mapping"] .clear-btn');
+  await page.setInputFiles('.card[data-file="mapping"] input[type=file]', upload.mapping);
+  await page.waitForSelector('.card[data-file="mapping"] .preview table');
+  await page.click('#runBtn');
+  await page.waitForSelector('#resultSection:not([hidden])');
+}
 
 // --- ダークテーマ -------------------------------------------------------
 await page.click('#themeToggle');

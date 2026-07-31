@@ -27,10 +27,10 @@
       ]
     },
     mapping: {
-      label: '変換表 Excel',
+      label: 'マッピング表 Excel',
       columns: [
-        { col: 'A', name: '変換前' },
-        { col: 'B', name: '変換後' }
+        { col: 'A', name: '保管場所名' },
+        { col: 'B', name: '倉庫名' }
       ]
     }
   };
@@ -332,7 +332,7 @@
       var missing = [];
       if (!state.actual) missing.push('①預り書');
       if (!state.sap) missing.push('②SAP在庫残データ');
-      if (!state.mapping) missing.push('③変換表');
+      if (!state.mapping) missing.push('③マッピング表');
       setRunHint(missing.join('・') + ' を読み込むと実行できます', true);
     }
   }
@@ -490,7 +490,7 @@
       : (s.actualTotal - s.sapTotal > 0 ? 'pos' : 'neg');
     entry('合計差異', fmtNum(s.actualTotal - s.sapTotal), deltaClass);
     entry('取込明細数', fmtNum(st.actual.used) + ' / ' + fmtNum(st.sap.used) + '（預り書 / SAP）');
-    entry('変換表', fmtNum(st.mappingCount) + '件');
+    entry('マッピング表', fmtNum(st.mappingCount) + '件');
   }
 
   function renderWarnings() {
@@ -505,7 +505,7 @@
       if (items && items.length) sections.push({ title: title, items: items });
     }
 
-    collect('変換表について', out.warnings.mapping);
+    collect('マッピング表について', out.warnings.mapping);
     collect('預り書 Excel について', out.warnings.actual);
     collect('SAP在庫残データ Excel について', out.warnings.sap);
 
@@ -520,15 +520,15 @@
         title: '預り書に無い倉庫のため出力対象外にしました（' +
           out.summary.excludedKeys + '型式 / ' + out.summary.excludedLines + '明細）',
         items: excludedItems.concat([
-          '倉庫名の書き間違いでここに出ている場合は、預り書または変換表を直してから再実行してください。'
+          '倉庫名の書き間違いでここに出ている場合は、預り書またはマッピング表を直してから再実行してください。'
         ])
       });
     }
 
     if (out.stats.sap.unconverted > 0) {
       sections.push({
-        title: '変換表に無い保管場所',
-        items: ['SAP の ' + out.stats.sap.unconverted + ' 明細は変換表に該当が無かったため、元の保管場所名のまま照合しました。']
+        title: 'マッピング表に無い保管場所',
+        items: ['SAP の ' + out.stats.sap.unconverted + ' 明細はマッピング表に該当が無かったため、元の保管場所名のまま照合しました。']
       });
     }
 

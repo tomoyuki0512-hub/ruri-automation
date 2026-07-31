@@ -135,21 +135,21 @@
         <div class="preview" hidden></div>
       </article>
 
-      <!-- ③ 変換表 -->
+      <!-- ③ マッピング表 -->
       <article class="card" data-file="mapping">
         <div class="card-head">
           <span class="card-no">③</span>
           <div class="card-title">
-            <h3>保管場所 変換表</h3>
-            <p>SAP の保管場所名を預り書の倉庫名に合わせる表</p>
+            <h3>マッピング表(倉庫名⇔保管場所名)</h3>
+            <p>SAP の保管場所名を預り書の倉庫名に読み替える表</p>
           </div>
         </div>
         <ul class="cols">
-          <li><b>A列</b><span>変換前</span></li>
-          <li><b>B列</b><span>変換後</span></li>
-          <li class="cols-note">表に無い名前はそのまま使用</li>
+          <li><b>A列</b><span>保管場所名</span></li>
+          <li><b>B列</b><span>倉庫名</span></li>
+          <li class="cols-note">表に無い保管場所名はそのまま使用</li>
         </ul>
-        <div class="drop" tabindex="0" role="button" aria-label="変換表 Excel を選択">
+        <div class="drop" tabindex="0" role="button" aria-label="マッピング表 Excel を選択">
           <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
           <div class="drop-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

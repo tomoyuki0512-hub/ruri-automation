@@ -981,21 +981,21 @@ td.delta-neg { color: var(--violet); font-weight: 700; }
         <div class="preview" hidden></div>
       </article>
 
-      <!-- ③ 変換表 -->
+      <!-- ③ マッピング表 -->
       <article class="card" data-file="mapping">
         <div class="card-head">
           <span class="card-no">③</span>
           <div class="card-title">
-            <h3>保管場所 変換表</h3>
-            <p>SAP の保管場所名を預り書の倉庫名に合わせる表</p>
+            <h3>マッピング表(倉庫名⇔保管場所名)</h3>
+            <p>SAP の保管場所名を預り書の倉庫名に読み替える表</p>
           </div>
         </div>
         <ul class="cols">
-          <li><b>A列</b><span>変換前</span></li>
-          <li><b>B列</b><span>変換後</span></li>
-          <li class="cols-note">表に無い名前はそのまま使用</li>
+          <li><b>A列</b><span>保管場所名</span></li>
+          <li><b>B列</b><span>倉庫名</span></li>
+          <li class="cols-note">表に無い保管場所名はそのまま使用</li>
         </ul>
-        <div class="drop" tabindex="0" role="button" aria-label="変換表 Excel を選択">
+        <div class="drop" tabindex="0" role="button" aria-label="マッピング表 Excel を選択">
           <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
           <div class="drop-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1272,7 +1272,7 @@ var Reconcile = (function () {
   }
 
   /**
-   * 変換表（A列=変換前 / B列=変換後）を辞書化する。
+   * マッピング表（A列=保管場所名 / B列=倉庫名）を辞書化する。
    * 同じ変換前が複数あれば後勝ちとし、警告に記録する。
    * @param {Array<Array<*>>} rows シートの生データ（開始行以降）
    * @param {number} startRow 元 Excel の行番号（1 始まり）。警告メッセージ用。
@@ -1290,16 +1290,16 @@ var Reconcile = (function () {
 
       if (from === '' && to === '') continue;
       if (from === '') {
-        warnings.push('変換表 ' + excelRow + '行目: 変換前(A列)が空のため無視しました。');
+        warnings.push('マッピング表 ' + excelRow + '行目: 変換前(A列)が空のため無視しました。');
         continue;
       }
       if (to === '') {
-        warnings.push('変換表 ' + excelRow + '行目: 変換後(B列)が空のため無視しました（「' + from + '」は変換されません）。');
+        warnings.push('マッピング表 ' + excelRow + '行目: 変換後(B列)が空のため無視しました（「' + from + '」は変換されません）。');
         continue;
       }
       if (Object.prototype.hasOwnProperty.call(map, from) && map[from] !== to) {
         warnings.push(
-          '変換表 ' + excelRow + '行目: 「' + from + '」の変換先が重複しています（「' +
+          'マッピング表 ' + excelRow + '行目: 「' + from + '」の変換先が重複しています（「' +
           map[from] + '」→「' + to + '」で上書き）。'
         );
       }
@@ -1309,7 +1309,7 @@ var Reconcile = (function () {
     return { map: map, warnings: warnings, count: count };
   }
 
-  /** 変換表を適用する。存在しなければ元の名前をそのまま使う。 */
+  /** マッピング表を適用する。存在しなければ元の名前をそのまま使う。 */
   function convertLocation(name, map) {
     if (Object.prototype.hasOwnProperty.call(map, name)) {
       return { name: map[name], converted: true };
@@ -1324,7 +1324,7 @@ var Reconcile = (function () {
    *   - cols: {warehouse, model, qty} 列文字
    *   - startRow: 元 Excel の行番号（1 始まり）
    *   - label: 警告メッセージ用の名称（"預り書" / "SAP"）
-   *   - locationMap: 指定時は倉庫名に変換表を適用する
+   *   - locationMap: 指定時は倉庫名にマッピング表を適用する
    */
   function aggregate(rows, opts) {
     var wIdx = columnIndex(opts.cols.warehouse);
@@ -1707,10 +1707,10 @@ if (typeof module !== 'undefined' && module.exports) {
       ]
     },
     mapping: {
-      label: '変換表 Excel',
+      label: 'マッピング表 Excel',
       columns: [
-        { col: 'A', name: '変換前' },
-        { col: 'B', name: '変換後' }
+        { col: 'A', name: '保管場所名' },
+        { col: 'B', name: '倉庫名' }
       ]
     }
   };
@@ -2012,7 +2012,7 @@ if (typeof module !== 'undefined' && module.exports) {
       var missing = [];
       if (!state.actual) missing.push('①預り書');
       if (!state.sap) missing.push('②SAP在庫残データ');
-      if (!state.mapping) missing.push('③変換表');
+      if (!state.mapping) missing.push('③マッピング表');
       setRunHint(missing.join('・') + ' を読み込むと実行できます', true);
     }
   }
@@ -2170,7 +2170,7 @@ if (typeof module !== 'undefined' && module.exports) {
       : (s.actualTotal - s.sapTotal > 0 ? 'pos' : 'neg');
     entry('合計差異', fmtNum(s.actualTotal - s.sapTotal), deltaClass);
     entry('取込明細数', fmtNum(st.actual.used) + ' / ' + fmtNum(st.sap.used) + '（預り書 / SAP）');
-    entry('変換表', fmtNum(st.mappingCount) + '件');
+    entry('マッピング表', fmtNum(st.mappingCount) + '件');
   }
 
   function renderWarnings() {
@@ -2185,7 +2185,7 @@ if (typeof module !== 'undefined' && module.exports) {
       if (items && items.length) sections.push({ title: title, items: items });
     }
 
-    collect('変換表について', out.warnings.mapping);
+    collect('マッピング表について', out.warnings.mapping);
     collect('預り書 Excel について', out.warnings.actual);
     collect('SAP在庫残データ Excel について', out.warnings.sap);
 
@@ -2200,15 +2200,15 @@ if (typeof module !== 'undefined' && module.exports) {
         title: '預り書に無い倉庫のため出力対象外にしました（' +
           out.summary.excludedKeys + '型式 / ' + out.summary.excludedLines + '明細）',
         items: excludedItems.concat([
-          '倉庫名の書き間違いでここに出ている場合は、預り書または変換表を直してから再実行してください。'
+          '倉庫名の書き間違いでここに出ている場合は、預り書またはマッピング表を直してから再実行してください。'
         ])
       });
     }
 
     if (out.stats.sap.unconverted > 0) {
       sections.push({
-        title: '変換表に無い保管場所',
-        items: ['SAP の ' + out.stats.sap.unconverted + ' 明細は変換表に該当が無かったため、元の保管場所名のまま照合しました。']
+        title: 'マッピング表に無い保管場所',
+        items: ['SAP の ' + out.stats.sap.unconverted + ' 明細はマッピング表に該当が無かったため、元の保管場所名のまま照合しました。']
       });
     }
 

@@ -116,7 +116,7 @@ var Reconcile = (function () {
   }
 
   /**
-   * 変換表（A列=変換前 / B列=変換後）を辞書化する。
+   * マッピング表（A列=保管場所名 / B列=倉庫名）を辞書化する。
    * 同じ変換前が複数あれば後勝ちとし、警告に記録する。
    * @param {Array<Array<*>>} rows シートの生データ（開始行以降）
    * @param {number} startRow 元 Excel の行番号（1 始まり）。警告メッセージ用。
@@ -134,16 +134,16 @@ var Reconcile = (function () {
 
       if (from === '' && to === '') continue;
       if (from === '') {
-        warnings.push('変換表 ' + excelRow + '行目: 変換前(A列)が空のため無視しました。');
+        warnings.push('マッピング表 ' + excelRow + '行目: 変換前(A列)が空のため無視しました。');
         continue;
       }
       if (to === '') {
-        warnings.push('変換表 ' + excelRow + '行目: 変換後(B列)が空のため無視しました（「' + from + '」は変換されません）。');
+        warnings.push('マッピング表 ' + excelRow + '行目: 変換後(B列)が空のため無視しました（「' + from + '」は変換されません）。');
         continue;
       }
       if (Object.prototype.hasOwnProperty.call(map, from) && map[from] !== to) {
         warnings.push(
-          '変換表 ' + excelRow + '行目: 「' + from + '」の変換先が重複しています（「' +
+          'マッピング表 ' + excelRow + '行目: 「' + from + '」の変換先が重複しています（「' +
           map[from] + '」→「' + to + '」で上書き）。'
         );
       }
@@ -153,7 +153,7 @@ var Reconcile = (function () {
     return { map: map, warnings: warnings, count: count };
   }
 
-  /** 変換表を適用する。存在しなければ元の名前をそのまま使う。 */
+  /** マッピング表を適用する。存在しなければ元の名前をそのまま使う。 */
   function convertLocation(name, map) {
     if (Object.prototype.hasOwnProperty.call(map, name)) {
       return { name: map[name], converted: true };
@@ -168,7 +168,7 @@ var Reconcile = (function () {
    *   - cols: {warehouse, model, qty} 列文字
    *   - startRow: 元 Excel の行番号（1 始まり）
    *   - label: 警告メッセージ用の名称（"預り書" / "SAP"）
-   *   - locationMap: 指定時は倉庫名に変換表を適用する
+   *   - locationMap: 指定時は倉庫名にマッピング表を適用する
    */
   function aggregate(rows, opts) {
     var wIdx = columnIndex(opts.cols.warehouse);

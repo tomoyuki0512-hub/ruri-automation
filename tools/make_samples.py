@@ -8,7 +8,7 @@
   - 預り書に無い倉庫（取引先名など）が SAP 側にあり、出力対象外になるケース
   - 数量差異
   - 預り書のみ / SAPのみ
-  - 変換表にヒットする倉庫 / ヒットせず元名称を使う倉庫
+  - マッピング表にヒットする倉庫 / ヒットせず元名称を使う倉庫
   - "1,234" 形式の文字列数値、小数の基本数量
   - 使用しない列にダミー値を入れて列ずれを検出できるようにする
 """
@@ -38,7 +38,7 @@ def build_actual(path: Path) -> None:
         ("大阪倉庫", "AAA-100", "1,200"),    # 文字列の桁区切り
         ("大阪倉庫", "DDD-400", 6),
         ("福岡倉庫", "EEE-500", 1.5),        # 小数
-        ("ST99", "FFF-600", 7),              # 変換表に無い保管場所と突合
+        ("ST99", "FFF-600", 7),              # マッピング表に無い保管場所と突合
         ("名古屋倉庫", "GGG-700", 12),       # SAP 側が 2 明細に分かれる
     ]
 
@@ -72,7 +72,7 @@ def build_sap(path: Path) -> None:
         ("ST02", "HHH-800", 9),             # 預り書に無し → SAPのみ
         ("ST03", "EEE-500", 1.5),
         ("ST99", "FFF-600", 4),
-        ("ST99", "FFF-600", 3),             # 合計 7 で預り書と一致（変換表に無い）
+        ("ST99", "FFF-600", 3),             # 合計 7 で預り書と一致（マッピング表に無い）
         ("ST04", "GGG-700", 5),
         ("ST04", "GGG-700", 7),             # 合計 12 で預り書と一致
         # 預り書に存在しない倉庫（取引先名）→ 出力対象外になる
@@ -92,12 +92,12 @@ def build_sap(path: Path) -> None:
 
 
 def build_mapping(path: Path) -> None:
-    """変換表: A列=変換前 / B列=変換後"""
+    """マッピング表: A列=保管場所名 / B列=倉庫名"""
     wb = Workbook()
     ws = wb.active
     ws.title = "変換表"
 
-    ws.append(["変換前", "変換後"])
+    ws.append(["保管場所名", "保管場所名変換後"])
     for before, after in [
         ("ST01", "東京第一倉庫"),
         ("ST02", "大阪倉庫"),
@@ -118,7 +118,7 @@ def main() -> None:
 
     build_actual(out_dir / "sample_預り書.xlsx")
     build_sap(out_dir / "sample_SAP.xlsx")
-    build_mapping(out_dir / "sample_変換表.xlsx")
+    build_mapping(out_dir / "sample_マッピング表.xlsx")
 
     print(f"サンプルを作成しました: {out_dir}")
     for p in sorted(out_dir.iterdir()):
