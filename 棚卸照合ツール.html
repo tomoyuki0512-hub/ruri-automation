@@ -2195,12 +2195,15 @@ if (typeof module !== 'undefined' && module.exports) {
       });
     }
 
-    if (out.stats.sap.unconverted > 0) {
-      sections.push({
-        title: 'マッピング表に無い保管場所',
-        items: ['SAP の ' + out.stats.sap.unconverted + ' 明細はマッピング表に該当が無かったため、元の保管場所名のまま照合しました。']
-      });
-    }
+  /** 不要ワーニングのコメント化
+   * if (out.stats.sap.unconverted > 0) {
+   *   sections.push({
+   *     title: 'マッピング表に無い保管場所',
+   *     items: ['SAP の ' + out.stats.sap.unconverted + ' 明細はマッピング表に該当が無かったため、元の保管場所名のまま照合しました。']
+   *   });
+   * }
+   */
+   
 
     if (out.nearMisses.length) {
       var items = out.nearMisses.map(function (m) {
