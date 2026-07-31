@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>棚卸照合ツール｜実棚 × SAP</title>
+<style>/*__STYLE__*/</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4"/><path d="M3 17l9 4 9-4"/>
+        </svg>
+      </span>
+      <div>
+        <h1>棚卸照合ツール</h1>
+        <p class="brand-sub">実棚 Excel と SAP Excel を 倉庫 × 型式 で突合します</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="badge badge-safe" title="ファイルはこのPCのブラウザ内だけで処理され、どこにも送信されません">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        オフライン処理・送信なし
+      </span>
+      <button type="button" id="themeToggle" class="icon-btn" title="表示テーマを切り替え" aria-label="表示テーマを切り替え">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- STEP 1 : ファイル -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-no">1</span>
+      <div>
+        <h2>Excel ファイルを読み込む</h2>
+        <p class="step-desc">3つのファイルをドラッグ＆ドロップするか、枠をクリックして選択してください。<br>
+          読み込むと下にプレビューが出るので、列とデータ開始行が合っているか確認できます。</p>
+      </div>
+    </div>
+
+    <div class="cards" id="cards">
+      <!-- ① 実棚 -->
+      <article class="card" data-file="actual">
+        <div class="card-head">
+          <span class="card-no">①</span>
+          <div class="card-title">
+            <h3>実棚 Excel</h3>
+            <p>実際の在庫が管理されているファイル</p>
+          </div>
+        </div>
+        <ul class="cols">
+          <li><b>A列</b><span>倉庫名</span></li>
+          <li><b>E列</b><span>型式</span></li>
+          <li><b>I列</b><span>台数</span></li>
+        </ul>
+        <div class="drop" tabindex="0" role="button" aria-label="実棚 Excel を選択">
+          <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
+          <div class="drop-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+            </svg>
+            <span class="drop-main">ドラッグ＆ドロップ</span>
+            <span class="drop-sub">またはクリックして選択</span>
+          </div>
+          <div class="drop-filled" hidden>
+            <span class="file-icon" aria-hidden="true">XLS</span>
+            <span class="file-name"></span>
+            <span class="file-meta"></span>
+            <button type="button" class="clear-btn" title="選択を解除">解除</button>
+          </div>
+        </div>
+        <div class="settings" hidden>
+          <label>シート
+            <select class="sheet-select"></select>
+          </label>
+          <label>データ開始行
+            <input type="number" class="start-row" min="1" step="1" value="2">
+          </label>
+          <span class="settings-hint">1行目がヘッダなら「2」</span>
+        </div>
+        <div class="preview" hidden></div>
+      </article>
+
+      <!-- ② SAP -->
+      <article class="card" data-file="sap">
+        <div class="card-head">
+          <span class="card-no">②</span>
+          <div class="card-title">
+            <h3>SAP Excel</h3>
+            <p>SAP から出力した在庫ファイル</p>
+          </div>
+        </div>
+        <ul class="cols">
+          <li><b>E列</b><span>保管場所名</span></li>
+          <li><b>G列</b><span>品目テキスト</span></li>
+          <li><b>J列</b><span>基本数量</span></li>
+        </ul>
+        <div class="drop" tabindex="0" role="button" aria-label="SAP Excel を選択">
+          <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
+          <div class="drop-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+            </svg>
+            <span class="drop-main">ドラッグ＆ドロップ</span>
+            <span class="drop-sub">またはクリックして選択</span>
+          </div>
+          <div class="drop-filled" hidden>
+            <span class="file-icon" aria-hidden="true">XLS</span>
+            <span class="file-name"></span>
+            <span class="file-meta"></span>
+            <button type="button" class="clear-btn" title="選択を解除">解除</button>
+          </div>
+        </div>
+        <div class="settings" hidden>
+          <label>シート
+            <select class="sheet-select"></select>
+          </label>
+          <label>データ開始行
+            <input type="number" class="start-row" min="1" step="1" value="2">
+          </label>
+          <span class="settings-hint">1行目がヘッダなら「2」</span>
+        </div>
+        <div class="preview" hidden></div>
+      </article>
+
+      <!-- ③ 変換表 -->
+      <article class="card" data-file="mapping">
+        <div class="card-head">
+          <span class="card-no">③</span>
+          <div class="card-title">
+            <h3>保管場所 変換表</h3>
+            <p>SAP の保管場所名を実棚の倉庫名に合わせる表</p>
+          </div>
+        </div>
+        <ul class="cols">
+          <li><b>A列</b><span>変換前</span></li>
+          <li><b>B列</b><span>変換後</span></li>
+          <li class="cols-note">表に無い名前はそのまま使用</li>
+        </ul>
+        <div class="drop" tabindex="0" role="button" aria-label="変換表 Excel を選択">
+          <input type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" hidden>
+          <div class="drop-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+            </svg>
+            <span class="drop-main">ドラッグ＆ドロップ</span>
+            <span class="drop-sub">またはクリックして選択</span>
+          </div>
+          <div class="drop-filled" hidden>
+            <span class="file-icon" aria-hidden="true">XLS</span>
+            <span class="file-name"></span>
+            <span class="file-meta"></span>
+            <button type="button" class="clear-btn" title="選択を解除">解除</button>
+          </div>
+        </div>
+        <div class="settings" hidden>
+          <label>シート
+            <select class="sheet-select"></select>
+          </label>
+          <label>データ開始行
+            <input type="number" class="start-row" min="1" step="1" value="2">
+          </label>
+          <span class="settings-hint">1行目がヘッダなら「2」</span>
+        </div>
+        <div class="preview" hidden></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- STEP 2 : 実行 -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-no">2</span>
+      <div>
+        <h2>照合を実行する</h2>
+        <p class="step-desc">同じ 倉庫 × 型式 の明細を合計してから、実棚と SAP を突き合わせます。</p>
+      </div>
+    </div>
+    <div class="run-bar">
+      <button type="button" id="runBtn" class="primary-btn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+        棚卸照合を実行
+      </button>
+      <span id="runHint" class="run-hint">3つのファイルを読み込むと実行できます</span>
+    </div>
+  </section>
+
+  <!-- STEP 3 : 結果 -->
+  <section class="step" id="resultSection" hidden>
+    <div class="step-head">
+      <span class="step-no">3</span>
+      <div>
+        <h2>照合結果</h2>
+        <p class="step-desc">差異のある行から順に表示しています。CSV は Excel でそのまま開けます。</p>
+      </div>
+    </div>
+
+    <div class="summary" id="summary"></div>
+
+    <div class="totals" id="totals"></div>
+
+    <div class="panel" id="warnPanel" hidden>
+      <button type="button" class="panel-head" id="warnToggle" aria-expanded="false">
+        <span class="warn-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+            <path d="M12 9v4"/><path d="M12 17h.01"/>
+          </svg>
+        </span>
+        <span id="warnTitle">確認事項</span>
+        <span class="chev" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
+      </button>
+      <div class="panel-body" id="warnBody" hidden></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filters" id="filters" role="tablist" aria-label="判定で絞り込み"></div>
+      <div class="tools">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+          </svg>
+          <input type="search" id="searchBox" placeholder="倉庫名・型式で絞り込み" aria-label="倉庫名・型式で絞り込み">
+        </div>
+        <button type="button" id="csvAll" class="ghost-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/>
+          </svg>
+          全件CSV
+        </button>
+        <button type="button" id="csvDiff" class="ghost-btn accent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/>
+          </svg>
+          差異のみCSV
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="resultTable">
+        <thead>
+          <tr>
+            <th class="th-status" data-sort="status">判定</th>
+            <th data-sort="warehouse">倉庫名</th>
+            <th data-sort="model">型式</th>
+            <th class="num" data-sort="actualQty">実棚台数</th>
+            <th class="num" data-sort="sapQty">SAP基本数量</th>
+            <th class="num" data-sort="delta">差異<span class="th-sub">実棚 − SAP</span></th>
+            <th class="num" data-sort="actualLines">実棚<span class="th-sub">明細数</span></th>
+            <th class="num" data-sort="sapLines">SAP<span class="th-sub">明細数</span></th>
+            <th data-sort="sapSourceNames">SAP保管場所名<span class="th-sub">変換前</span></th>
+          </tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+      <p class="table-empty" id="tableEmpty" hidden>該当する行がありません。</p>
+    </div>
+    <p class="table-foot" id="tableFoot"></p>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p>すべての処理はこのページ内（お使いの PC のブラウザ）で完結します。ファイルがネットワークに送信されることはありません。</p>
+  <p class="foot-sub">Excel の読み込みに <a href="https://sheetjs.com/" rel="noreferrer">SheetJS (xlsx)</a> を使用しています（Apache License 2.0）。</p>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+
+<script>/*__XLSX__*/</script>
+<script>/*__RECONCILE__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>

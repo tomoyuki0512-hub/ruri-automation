@@ -1,0 +1,11 @@
+# 動作確認用に生成されるファイル
+samples/
+tests/screenshot-*.png
+
+# OS / エディタ
+.DS_Store
+Thumbs.db
+*.swp
+
+# Excel の一時ファイル
+~$*.xls*
