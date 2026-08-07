@@ -197,8 +197,10 @@ await page.screenshot({ path: resultShot, fullPage: true });
 // 警告パネル
 await page.click('#warnToggle');
 const warnText = await page.textContent('#warnBody');
-check('マッピング表に無い保管場所を警告に出す', () => {
-  assert.match(warnText, /マッピング表に該当が無かった/);
+check('マッピング表に無い保管場所は確認事項に出さない', () => {
+  // 元の保管場所名のまま照合するのは仕様どおりの動きなので確認不要
+  assert.doesNotMatch(warnText, /マッピング表に該当が無かった/);
+  assert.doesNotMatch(warnText, /マッピング表に無い保管場所/);
 });
 check('出力対象外にした倉庫を確認事項に出す', () => {
   assert.match(warnText, /預り書に無い倉庫のため出力対象外/);

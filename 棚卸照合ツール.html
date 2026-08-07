@@ -2195,15 +2195,9 @@ if (typeof module !== 'undefined' && module.exports) {
       });
     }
 
-  /** 不要ワーニングのコメント化
-   * if (out.stats.sap.unconverted > 0) {
-   *   sections.push({
-   *     title: 'マッピング表に無い保管場所',
-   *     items: ['SAP の ' + out.stats.sap.unconverted + ' 明細はマッピング表に該当が無かったため、元の保管場所名のまま照合しました。']
-   *   });
-   * }
-   */
-   
+    // マッピング表に該当が無い保管場所は元の名前のまま照合する仕様どおりの動きであり、
+    // 確認の必要が無いため確認事項には出さない。
+    // （そのうち預り書に無い倉庫は上の「出力対象外」に集約されて表示される）
 
     if (out.nearMisses.length) {
       var items = out.nearMisses.map(function (m) {
